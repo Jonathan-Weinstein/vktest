@@ -9,6 +9,12 @@ SKL+ means (intel_device_info::ver >= 9) ?
 https://gitlab.freedesktop.org/mesa/mesa/-/blob/main/src/intel/dev/intel_device_info.h
 
 
+
+Also need to grep for "rasterization_samples":
+   pipeline->rasterization_samples =
+      ms_info ? ms_info->rasterizationSamples : 1;
+
+
 -----------
 
 https://01.org/linuxgraphics/documentation

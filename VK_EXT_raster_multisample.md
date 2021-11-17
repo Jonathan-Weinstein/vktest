@@ -97,3 +97,6 @@ a VkFramebufferMixedSamplesCombinationNV to VkPipelineMultisampleStateCreateInfo
 I don't think any implementors that support some form of mixed samples are
 currently looking at a VkFramebufferMixedSamplesCombinationNV in the pipeline
 state since I think they only support one of the two existing modes.
+
+I don't feel strongly however this functionality is exposed, as long as it
+can be exposed somehow.
