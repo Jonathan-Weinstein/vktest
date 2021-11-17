@@ -1,3 +1,12 @@
+/*
+`g++ -DVK_NO_PROTOTYPES  *.cpp -std=c++11 -Wall -Wshadow -ldl -o vktest.out`
+
+Run via:
+
+`./vktest [gpu_index (default = 0)]`
+*/
+
+
 #ifndef VK_NO_PROTOTYPES
 #error "Compile with -DVK_NO_PROTOTYPES"
 #endif
@@ -7,6 +16,7 @@
 #include "volk/volk.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 bool TestExtRasterMultisample(VkDevice device, VkQueue queue, uint32_t graphicsFamilyIndex, const VkPhysicalDeviceMemoryProperties& memProps);
 
@@ -45,30 +55,47 @@ int main(int argc, char **argv)
 {
     int const tailc = argc - 1;
     char **const tailv = argv + 1;
-    printf("tailc=%d, tailv[-1]=[%s]\n", tailc, tailv[-1]);
 
-    VulkanObjetcs vk;
-    SimpleInitVulkan(&vk, 0, ~0u);
+    int gpuIndex = 0;
 
-    if (vk.NV_coverage_reduction_mode) {
-        VkSampleCountFlags flags = GetTirSampleFlagsSupported(vk.physicalDevice, vk.instance);
-        printf("VK_NV_coverage_reduction_mode TIR SampleFlags={");
-        for (uint32_t f = 1; flags; f <<= 1) {
-            if (flags & f) {
-                printf("%d", f);
-                flags &= ~f;
-                if (!flags) break;
-                putchar(',');
-            }
+    if (tailc >= 0) {
+        printf("tailc=%d, tailv[-1]=[%s]\n", tailc, tailv[-1]);
+
+        if (tailc >= 2) {
+            printf("got %d args, only 0 or 1 valid\n", tailc);
+            return 1;
         }
-        puts("}");
+
+        if (tailc == 1) {
+            gpuIndex = atoi(tailv[0]);
+        }
     }
 
-    TestExtRasterMultisample(vk.device, vk.universalQueue, vk.universalFamilyIndex, vk.memProps);
+    VulkanObjetcs vk;
+    VkResult const initResult = SimpleInitVulkan(&vk, gpuIndex, ~0u);
+    if (initResult == VK_SUCCESS) {
+        if (vk.NV_coverage_reduction_mode) {
+            VkSampleCountFlags flags = GetTirSampleFlagsSupported(vk.physicalDevice, vk.instance);
+            printf("VK_NV_coverage_reduction_mode TIR SampleFlags={");
+            for (uint32_t f = 1; flags; f <<= 1) {
+                if (flags & f) {
+                    printf("%d", f);
+                    flags &= ~f;
+                    if (!flags) break;
+                    putchar(',');
+                }
+            }
+            puts("}");
+        }
+
+
+        puts("Running test..."); fflush(stdout);
+        bool passed = TestExtRasterMultisample(vk.device, vk.universalQueue, vk.universalFamilyIndex, vk.memProps);
+        puts(passed ? "\nTest PASSED." : "\nTest FAILED."); fflush(stdout);
+    } else {
+        printf("Failed to initialize Vulkan, VkResult = %d\n", initResult);
+    }
 
     SimpleDestroyVulkan(&vk);
-
-    puts("Bye...");
-
     return 0;
 }

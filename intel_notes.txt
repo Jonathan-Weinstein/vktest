@@ -1,0 +1,63 @@
+/*
+BDW = Broadwell
+SKL = Skylake
+
+How to test "IsNewerThanSkylake()"?
+
+SKL+ means (intel_device_info::ver >= 9) ?
+
+https://gitlab.freedesktop.org/mesa/mesa/-/blob/main/src/intel/dev/intel_device_info.h
+
+
+-----------
+
+https://01.org/linuxgraphics/documentation
+->
+https://01.org/linuxgraphics/hardware-specification-prms/2019-intelr-processors-based-ice-lake-platform
+->
+https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-icllp-vol02d-commandreference-structures_0.pdf
+
+
+Intel(R) Iris(R) Plus Graphics and UHD Graphics Open Source
+Programmer's Reference Manual
+For the 2019 10th Generation Intel Core(TM) Processors based on the
+"Ice Lake" Platform
+Volume 2d: Command Reference: Structures
+January 2020, Revision 1.0
+
+
+3DSTATE_MULTISAMPLE_BODY : page 41-42
+
+bit 4 : "Pixel Location"
+When 3DSTATE_RASTER::ForcedSampleCount is other than NUMRASTSAMPLES_0, this field
+must be 0h.
+
+bits [3:1] : "Number of Multisamples"
+
+Set to log2(PhyscalAttatchmentSampleCount), I think set to 0 == log2(1) for no attachments?
+
+---
+
+3DSTATE_RASTER_BODY : pages 59 - 63
+
+DWORD[0] bits [20:18]  : "Forced Sample Count"
+
+Set to (1 + lg2(ForcedSampleCount)) where lg2(0) == -1
+
+When 3DSTATE_MULTISAMPLE::Number of Multisamples !=NUMSAMPLES_1, this field must be
+either NUMRASTSAMPLES_0 or NUMRASTSAMPLES_1.
+When 3DSTATE_MULTISAMPLE::Number of Multisamples == NUMSAMPLES_1, this field must
+not be NUMRASTSAMPLES_1.
+
+---
+
+Kaby Lake:
+https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-kbl-vol02a-commandreference-instructions.pdf
+Page 169:
+3DSTATE_RASTER
+DWORD[1] bits [20:18] : "Forced Sample Count"
+Seems similar to icelake.
+
+*/
+
+

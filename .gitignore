@@ -34,3 +34,6 @@
 # QTCreator
 CMakeLists.txt.user
 
+# Misc
+generated_2x.png
+

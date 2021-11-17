@@ -1,18 +1,15 @@
-// draw a triangle
-// read it back.
-// check the mask olong the edges.
-// compute barycoords and use top-left rule?
-
-
 #include "vk_simple_init.h"
 #include "volk/volk.h"
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 
-#include "stb_image_write.h"
-#include "stb_image.h"
+#include "stb/stb_image_write.h"
+#include "stb/stb_image.h"
+
+struct vec2f { float x, y; };
 
 struct PackedR8G8B8 {
     uint8_t r, g, b;
@@ -29,101 +26,51 @@ inline bool operator!=(PackedR8G8B8 c0, PackedR8G8B8 c1)
 }
 
 
-// glslc -mfmt=c --target-env=vulkan1.1 raster_ms_smoke_test.vert -o -
+// glslc -O --target-env=vulkan1.1 xy01_attrib_passthru.vert -mfmt=c -o -
 static const uint32_t VsSpirv[] =
-{0x07230203,0x00010300,0x000d000a,0x00000035,
+{0x07230203,0x00010300,0x000d000a,0x0000001b,
 0x00000000,0x00020011,0x00000001,0x0006000b,
 0x00000001,0x4c534c47,0x6474732e,0x3035342e,
 0x00000000,0x0003000e,0x00000000,0x00000001,
 0x0007000f,0x00000000,0x00000004,0x6e69616d,
-0x00000000,0x0000000b,0x0000001a,0x00030003,
-0x00000002,0x000001c2,0x000a0004,0x475f4c47,
-0x4c474f4f,0x70635f45,0x74735f70,0x5f656c79,
-0x656e696c,0x7269645f,0x69746365,0x00006576,
-0x00080004,0x475f4c47,0x4c474f4f,0x6e695f45,
-0x64756c63,0x69645f65,0x74636572,0x00657669,
-0x00040005,0x00000004,0x6e69616d,0x00000000,
-0x00030005,0x00000008,0x00646976,0x00060005,
-0x0000000b,0x565f6c67,0x65747265,0x646e4978,
-0x00007865,0x00060005,0x00000018,0x505f6c67,
-0x65567265,0x78657472,0x00000000,0x00060006,
-0x00000018,0x00000000,0x505f6c67,0x7469736f,
-0x006e6f69,0x00070006,0x00000018,0x00000001,
-0x505f6c67,0x746e696f,0x657a6953,0x00000000,
-0x00070006,0x00000018,0x00000002,0x435f6c67,
-0x4470696c,0x61747369,0x0065636e,0x00070006,
-0x00000018,0x00000003,0x435f6c67,0x446c6c75,
-0x61747369,0x0065636e,0x00030005,0x0000001a,
-0x00000000,0x00050005,0x0000002c,0x65646e69,
-0x6c626178,0x00000065,0x00040047,0x0000000b,
-0x0000000b,0x0000002a,0x00050048,0x00000018,
-0x00000000,0x0000000b,0x00000000,0x00050048,
-0x00000018,0x00000001,0x0000000b,0x00000001,
-0x00050048,0x00000018,0x00000002,0x0000000b,
-0x00000003,0x00050048,0x00000018,0x00000003,
-0x0000000b,0x00000004,0x00030047,0x00000018,
-0x00000002,0x00020013,0x00000002,0x00030021,
-0x00000003,0x00000002,0x00040015,0x00000006,
-0x00000020,0x00000000,0x00040020,0x00000007,
-0x00000007,0x00000006,0x00040015,0x00000009,
-0x00000020,0x00000001,0x00040020,0x0000000a,
-0x00000001,0x00000009,0x0004003b,0x0000000a,
-0x0000000b,0x00000001,0x0004002b,0x00000006,
-0x0000000f,0x00000006,0x00020014,0x00000010,
-0x00030016,0x00000014,0x00000020,0x00040017,
-0x00000015,0x00000014,0x00000004,0x0004002b,
-0x00000006,0x00000016,0x00000001,0x0004001c,
-0x00000017,0x00000014,0x00000016,0x0006001e,
-0x00000018,0x00000015,0x00000014,0x00000017,
-0x00000017,0x00040020,0x00000019,0x00000003,
-0x00000018,0x0004003b,0x00000019,0x0000001a,
-0x00000003,0x0004002b,0x00000009,0x0000001b,
-0x00000000,0x00040017,0x0000001c,0x00000014,
-0x00000002,0x0004001c,0x0000001d,0x0000001c,
-0x0000000f,0x0004002b,0x00000014,0x0000001e,
-0x00000000,0x0004002b,0x00000014,0x0000001f,
-0x3f800000,0x0005002c,0x0000001c,0x00000020,
-0x0000001e,0x0000001f,0x0005002c,0x0000001c,
-0x00000021,0x0000001f,0x0000001e,0x0004002b,
-0x00000014,0x00000022,0xbf000000,0x0004002b,
-0x00000014,0x00000023,0xbf800000,0x0005002c,
-0x0000001c,0x00000024,0x00000022,0x00000023,
-0x0004002b,0x00000014,0x00000025,0xbf400000,
-0x0005002c,0x0000001c,0x00000026,0x00000025,
-0x0000001f,0x0005002c,0x0000001c,0x00000027,
-0x0000001f,0x00000023,0x0005002c,0x0000001c,
-0x00000028,0x00000023,0x00000025,0x0009002c,
-0x0000001d,0x00000029,0x00000020,0x00000021,
-0x00000024,0x00000026,0x00000027,0x00000028,
-0x00040020,0x0000002b,0x00000007,0x0000001d,
-0x00040020,0x0000002d,0x00000007,0x0000001c,
-0x00040020,0x00000033,0x00000003,0x00000015,
+0x00000000,0x0000000d,0x00000012,0x00050048,
+0x0000000b,0x00000000,0x0000000b,0x00000000,
+0x00050048,0x0000000b,0x00000001,0x0000000b,
+0x00000001,0x00050048,0x0000000b,0x00000002,
+0x0000000b,0x00000003,0x00050048,0x0000000b,
+0x00000003,0x0000000b,0x00000004,0x00030047,
+0x0000000b,0x00000002,0x00040047,0x00000012,
+0x0000001e,0x00000000,0x00020013,0x00000002,
+0x00030021,0x00000003,0x00000002,0x00030016,
+0x00000006,0x00000020,0x00040017,0x00000007,
+0x00000006,0x00000004,0x00040015,0x00000008,
+0x00000020,0x00000000,0x0004002b,0x00000008,
+0x00000009,0x00000001,0x0004001c,0x0000000a,
+0x00000006,0x00000009,0x0006001e,0x0000000b,
+0x00000007,0x00000006,0x0000000a,0x0000000a,
+0x00040020,0x0000000c,0x00000003,0x0000000b,
+0x0004003b,0x0000000c,0x0000000d,0x00000003,
+0x00040015,0x0000000e,0x00000020,0x00000001,
+0x0004002b,0x0000000e,0x0000000f,0x00000000,
+0x00040017,0x00000010,0x00000006,0x00000002,
+0x00040020,0x00000011,0x00000001,0x00000010,
+0x0004003b,0x00000011,0x00000012,0x00000001,
+0x0004002b,0x00000006,0x00000014,0x00000000,
+0x0004002b,0x00000006,0x00000015,0x3f800000,
+0x00040020,0x00000019,0x00000003,0x00000007,
 0x00050036,0x00000002,0x00000004,0x00000000,
-0x00000003,0x000200f8,0x00000005,0x0004003b,
-0x00000007,0x00000008,0x00000007,0x0004003b,
-0x0000002b,0x0000002c,0x00000007,0x0004003d,
-0x00000009,0x0000000c,0x0000000b,0x0004007c,
-0x00000006,0x0000000d,0x0000000c,0x0003003e,
-0x00000008,0x0000000d,0x0004003d,0x00000006,
-0x0000000e,0x00000008,0x000500b0,0x00000010,
-0x00000011,0x0000000e,0x0000000f,0x0004003d,
-0x00000006,0x00000012,0x00000008,0x000600a9,
-0x00000006,0x00000013,0x00000011,0x00000012,
-0x0000000f,0x0003003e,0x00000008,0x00000013,
-0x0004003d,0x00000006,0x0000002a,0x00000008,
-0x0003003e,0x0000002c,0x00000029,0x00050041,
-0x0000002d,0x0000002e,0x0000002c,0x0000002a,
-0x0004003d,0x0000001c,0x0000002f,0x0000002e,
-0x00050051,0x00000014,0x00000030,0x0000002f,
-0x00000000,0x00050051,0x00000014,0x00000031,
-0x0000002f,0x00000001,0x00070050,0x00000015,
-0x00000032,0x00000030,0x00000031,0x0000001e,
-0x0000001f,0x00050041,0x00000033,0x00000034,
-0x0000001a,0x0000001b,0x0003003e,0x00000034,
-0x00000032,0x000100fd,0x00010038};
+0x00000003,0x000200f8,0x00000005,0x0004003d,
+0x00000010,0x00000013,0x00000012,0x00050051,
+0x00000006,0x00000016,0x00000013,0x00000000,
+0x00050051,0x00000006,0x00000017,0x00000013,
+0x00000001,0x00070050,0x00000007,0x00000018,
+0x00000016,0x00000017,0x00000014,0x00000015,
+0x00050041,0x00000019,0x0000001a,0x0000000d,
+0x0000000f,0x0003003e,0x0000001a,0x00000018,
+0x000100fd,0x00010038};
 
 
-// glslc -mfmt=c --target-env=vulkan1.1 write_sample_mask.frag -o -
+// glslc -O --target-env=vulkan1.1 write_sample_mask.frag -mfmt=c -o -
 static const uint32_t FsSpirv[] =
 {0x07230203,0x00010300,0x000d000a,0x00000013,
 0x00000000,0x00020011,0x00000001,0x0006000b,
@@ -131,36 +78,28 @@ static const uint32_t FsSpirv[] =
 0x00000000,0x0003000e,0x00000000,0x00000001,
 0x0007000f,0x00000004,0x00000004,0x6e69616d,
 0x00000000,0x00000008,0x0000000d,0x00030010,
-0x00000004,0x00000007,0x00030003,0x00000002,
-0x000001c2,0x000a0004,0x475f4c47,0x4c474f4f,
-0x70635f45,0x74735f70,0x5f656c79,0x656e696c,
-0x7269645f,0x69746365,0x00006576,0x00080004,
-0x475f4c47,0x4c474f4f,0x6e695f45,0x64756c63,
-0x69645f65,0x74636572,0x00657669,0x00040005,
-0x00000004,0x6e69616d,0x00000000,0x00040005,
-0x00000008,0x30767472,0x00000000,0x00060005,
-0x0000000d,0x535f6c67,0x6c706d61,0x73614d65,
-0x006e496b,0x00040047,0x00000008,0x0000001e,
-0x00000000,0x00030047,0x0000000d,0x0000000e,
-0x00040047,0x0000000d,0x0000000b,0x00000014,
-0x00020013,0x00000002,0x00030021,0x00000003,
-0x00000002,0x00040015,0x00000006,0x00000020,
-0x00000000,0x00040020,0x00000007,0x00000003,
-0x00000006,0x0004003b,0x00000007,0x00000008,
-0x00000003,0x00040015,0x00000009,0x00000020,
-0x00000001,0x0004002b,0x00000006,0x0000000a,
-0x00000001,0x0004001c,0x0000000b,0x00000009,
-0x0000000a,0x00040020,0x0000000c,0x00000001,
-0x0000000b,0x0004003b,0x0000000c,0x0000000d,
-0x00000001,0x0004002b,0x00000009,0x0000000e,
-0x00000000,0x00040020,0x0000000f,0x00000001,
-0x00000009,0x00050036,0x00000002,0x00000004,
-0x00000000,0x00000003,0x000200f8,0x00000005,
-0x00050041,0x0000000f,0x00000010,0x0000000d,
-0x0000000e,0x0004003d,0x00000009,0x00000011,
-0x00000010,0x0004007c,0x00000006,0x00000012,
-0x00000011,0x0003003e,0x00000008,0x00000012,
-0x000100fd,0x00010038};
+0x00000004,0x00000007,0x00040047,0x00000008,
+0x0000001e,0x00000000,0x00030047,0x0000000d,
+0x0000000e,0x00040047,0x0000000d,0x0000000b,
+0x00000014,0x00020013,0x00000002,0x00030021,
+0x00000003,0x00000002,0x00040015,0x00000006,
+0x00000020,0x00000000,0x00040020,0x00000007,
+0x00000003,0x00000006,0x0004003b,0x00000007,
+0x00000008,0x00000003,0x00040015,0x00000009,
+0x00000020,0x00000001,0x0004002b,0x00000006,
+0x0000000a,0x00000001,0x0004001c,0x0000000b,
+0x00000009,0x0000000a,0x00040020,0x0000000c,
+0x00000001,0x0000000b,0x0004003b,0x0000000c,
+0x0000000d,0x00000001,0x0004002b,0x00000009,
+0x0000000e,0x00000000,0x00040020,0x0000000f,
+0x00000001,0x00000009,0x00050036,0x00000002,
+0x00000004,0x00000000,0x00000003,0x000200f8,
+0x00000005,0x00050041,0x0000000f,0x00000010,
+0x0000000d,0x0000000e,0x0004003d,0x00000009,
+0x00000011,0x00000010,0x0004007c,0x00000006,
+0x00000012,0x00000011,0x0003003e,0x00000008,
+0x00000012,0x000100fd,0x00010038};
+
 
 
 static void
@@ -239,8 +178,6 @@ CreateBufferAndMemory(VkDevice device,
     VkMemoryAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
     allocInfo.allocationSize = bufReqs.size;
     allocInfo.memoryTypeIndex = uint32_t(sMemIndex);
-    printf("Buffer with {size=%d, usage=0x%X} using memTypeIndex=%d.\n",
-           bufferByteSize, usage, allocInfo.memoryTypeIndex);
     if (sMemIndex < 0) {
         puts("no good buffer mem type index");
         exit(2);
@@ -263,7 +200,6 @@ CreateImageAndMemory(VkDevice device,
     VkMemoryAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
     allocInfo.allocationSize = imageReqs.size;
     allocInfo.memoryTypeIndex = uint32_t(sMemIndex);
-    printf("Image using memTypeIndex=%d.\n", allocInfo.memoryTypeIndex);
     if (sMemIndex < 0) {
         puts("no good image mem type index");
         exit(3);
@@ -286,17 +222,19 @@ DestroyImageAndFreeMemory(VkDevice device, ImageAndMemory a)
     vkFreeMemory(device, a.memory, ALLOC_CBS);
 }
 
+// Current mechanism in proposed extension to disambiguite from VK_AMD_mixed_attachment_samples:
+#define VK_PIPELINE_MULTISAMPLE_STATE_CREATE_RASTER_MULTISAMPLE_BIT_EXT 0x00000001
 
 static void
 CreateExtRasterMultisamplePipeline(VkDevice device, VkShaderModule vs, VkShaderModule fs, VkRenderPass renderpass,
                                    VkPipelineLayout pipelineLayout, VkSampleCountFlagBits rasterSamples, VkPipeline *pPipline)
 {
+    VkGraphicsPipelineCreateInfo info = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
+
     const VkPipelineShaderStageCreateInfo stages[] = {
         { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, vs, "main" },
         { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, fs, "main" },
     };
-
-    VkGraphicsPipelineCreateInfo info = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 
     static const VkDynamicState DynamicStateList[] = {
         VK_DYNAMIC_STATE_VIEWPORT,
@@ -311,9 +249,7 @@ CreateExtRasterMultisamplePipeline(VkDevice device, VkShaderModule vs, VkShaderM
     // Set XOR logic op:
     VkPipelineColorBlendAttachmentState attBlendWriteAll = { };
     attBlendWriteAll.colorWriteMask = 0xf;
-    VkPipelineColorBlendStateCreateInfo blendState = {
-        VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO
-    };
+    VkPipelineColorBlendStateCreateInfo blendState = { VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
     blendState.logicOpEnable = VK_TRUE;
     blendState.logicOp = VK_LOGIC_OP_XOR;
     blendState.attachmentCount = 1;
@@ -323,14 +259,13 @@ CreateExtRasterMultisamplePipeline(VkDevice device, VkShaderModule vs, VkShaderM
         VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO
     };
 
-
     assert(uint32_t(rasterSamples) <= 32u && ((16 | 8 | 4 | 2) & rasterSamples) != 0);
     // VK_SAMPLE_COUNT_x_BIT == x for all x in {1,2,4,8,16,32,64}
     const VkSampleMask sampleMask = uint32_t(-1) >> (32 - rasterSamples); // set all bits in raster pattern
     const VkPipelineMultisampleStateCreateInfo msaaInfo = {
         VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         nullptr,
-        0x0, // new flag here?
+        VK_PIPELINE_MULTISAMPLE_STATE_CREATE_RASTER_MULTISAMPLE_BIT_EXT, // will cause validation error
         rasterSamples,
         false, // sampleShadingEnable
         0.0f,
@@ -343,15 +278,26 @@ CreateExtRasterMultisamplePipeline(VkDevice device, VkShaderModule vs, VkShaderM
         1, nullptr,
         1, nullptr
     };
+
     static const VkPipelineInputAssemblyStateCreateInfo TriangleListNoRestart = {
         VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
         nullptr, 0,
         VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
     };
 
-    // no attributes
+    static const VkVertexInputAttributeDescription Attribs[] = {
+        // location, binding, format, offsetof in struct:
+        { 0, 0, VK_FORMAT_R32G32_SFLOAT, 0 },
+    };
+    static const VkVertexInputBindingDescription InputSlot0Info= {
+        // binding, stride, rate:
+        0, sizeof(float)*2, VK_VERTEX_INPUT_RATE_VERTEX
+    };
     static const VkPipelineVertexInputStateCreateInfo VertexInputInfo = {
         VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        nullptr, 0,
+        1, &InputSlot0Info,
+        lengthof(Attribs), Attribs
     };
 
     VkPipelineRasterizationStateCreateInfo rast = { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
@@ -382,6 +328,7 @@ CreateExtRasterMultisamplePipeline(VkDevice device, VkShaderModule vs, VkShaderM
     VERIFY_VK(vkCreateGraphicsPipelines(device, VkPipelineCache(), 1, &info, ALLOC_CBS, pPipline));
 }
 
+
 bool TestExtRasterMultisample(VkDevice device, VkQueue queue, uint32_t graphicsFamilyIndex, const VkPhysicalDeviceMemoryProperties& memProps)
 {
     const VkExtent3D ImageSize = { 64, 64, 1 };
@@ -410,6 +357,27 @@ bool TestExtRasterMultisample(VkDevice device, VkQueue queue, uint32_t graphicsF
     CreateBufferAndMemory(device, memProps,
                           VK_MEMORY_PROPERTY_HOST_CACHED_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
                           PackedImageByteSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, &stage);
+
+    BufferAndMemory attribs;
+    {
+
+        CreateBufferAndMemory(device, memProps,
+                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                              4096, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, &attribs);
+        void *pAttribData;
+        VERIFY_VK(vkMapMemory(device, attribs.memory, 0, VK_WHOLE_SIZE, 0, &pAttribData));
+
+        static const vec2f Positions[6] = {
+            {  0,    1 },
+            {  1,    0 },
+            { -0.5, -1 },
+
+            { -0.75,  1 },
+            {  1, -1 },
+            { -1, -0.75 },
+        };
+        memcpy(pAttribData, Positions, sizeof Positions);
+    }
 
 
     ImageAndMemory resource;
@@ -457,7 +425,7 @@ bool TestExtRasterMultisample(VkDevice device, VkQueue queue, uint32_t graphicsF
             VK_IMAGE_VIEW_TYPE_2D_ARRAY,
             Format,
             VkComponentMapping(), // identity
-            { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }// single mip, single layer
+            { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } // single mip, single layer
         };
         VERIFY_VK(vkCreateImageView(device, &viewCreateInfo, ALLOC_CBS, &view));
     }
@@ -537,7 +505,8 @@ bool TestExtRasterMultisample(VkDevice device, VkQueue queue, uint32_t graphicsF
                 vp.maxDepth = 1;
                 vkCmdSetViewport(cmdbuf, 0, 1, &vp);
                 vkCmdSetScissor(cmdbuf, 0, 1, &RenderArea);
-
+                VkDeviceSize offsets[1] = { };
+                vkCmdBindVertexBuffers(cmdbuf, 0, 1, &attribs.buffer, offsets);
                 vkCmdDraw(cmdbuf, 6, 1, 0, 0);
             }
             vkCmdEndRenderPass(cmdbuf);
@@ -653,19 +622,8 @@ bool TestExtRasterMultisample(VkDevice device, VkQueue queue, uint32_t graphicsF
     vkDestroyRenderPass(device, renderpass, ALLOC_CBS);
     DestroyImageAndFreeMemory(device, resource);
     DestroyBufferAndFreeMemory(device, stage);
+    DestroyBufferAndFreeMemory(device, attribs);
 
-    puts(bTestPassed ? "Test Passed." : " Test failed.");
     return bTestPassed;
 }
-
-
-/*
-Windows IT laptop:
-
-    apiVersion = 1.2.177
-    driverVersion = 0x1925c0
-    Intel(R) UHD Graphics 630
-
-    2d doesn't sue indexed draws
-*/
 
