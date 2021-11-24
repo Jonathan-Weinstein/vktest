@@ -19,19 +19,28 @@ struct VulkanObjetcs {
     VkQueue universalQueue;
     uint32_t universalFamilyIndex;
 
-    bool NV_framebuffer_mixed_samples; // is VK_NV_framebuffer_mixed_samples supported?
-    bool NV_coverage_reduction_mode; // is VK_NV_coverage_reduction_mode supported?
-
     VkPhysicalDeviceMemoryProperties memProps;
 
+    // --------------------------------------------
+
+    bool NV_framebuffer_mixed_samples; // VK_NV_framebuffer_mixed_samples supported
+    bool NV_coverage_reduction_mode; // VK_NV_coverage_reduction_mode supported
+
     VkPhysicalDeviceProperties2 props2;
-
     VkPhysicalDeviceFeatures2 features2;
-
+    // VK_EXT_robustness2:
     VkPhysicalDeviceRobustness2FeaturesEXT robustness2Features;
-
-    VkPhysicalDeviceTransformFeedbackFeaturesEXT xfbFeaturesExt;
-    VkPhysicalDeviceTransformFeedbackPropertiesEXT xfbPropertiesExt;
+    // VK_EXT_transform_feedback:
+    VkPhysicalDeviceTransformFeedbackFeaturesEXT xfbFeatures;
+    VkPhysicalDeviceTransformFeedbackPropertiesEXT xfbProperties;
+    // VK_KHR_push_descriptor:
+    VkPhysicalDevicePushDescriptorPropertiesKHR pushDescriptorProperties;
+    // VK_EXT_extended_dynamic_state:
+    VkPhysicalDeviceExtendedDynamicStateFeaturesEXT dynamicStateFeatures;
+    // VK_EXT_line_rasterization:
+    VkPhysicalDeviceLineRasterizationFeaturesEXT lineRasterizationFeatures;
+    // VK_KHR_dynamic_rendering:
+    // VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures;
 };
 
 enum : unsigned {

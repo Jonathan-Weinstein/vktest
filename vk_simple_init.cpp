@@ -250,14 +250,31 @@ VkResult SimpleInitVulkan(VulkanObjetcs *vk, int gpuIndex, unsigned flags)
             vk->NV_framebuffer_mixed_samples = TestAndAppend(VK_NV_FRAMEBUFFER_MIXED_SAMPLES_EXTENSION_NAME);
             vk->NV_coverage_reduction_mode = TestAndAppend(VK_NV_COVERAGE_REDUCTION_MODE_EXTENSION_NAME);
 
+            if (TestAndAppend(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME)) {
+                // no features
+                PushFront(&vk->props2, &vk->pushDescriptorProperties, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES_KHR);
+            }
+
+            if (TestAndAppend(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME)) {
+                PushFront(&vk->features2, &vk->dynamicStateFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT);
+                // no properties
+            }
+
+
+            if (TestAndAppend(VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME)) {
+                PushFront(&vk->features2, &vk->lineRasterizationFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT);
+                // properties not useful
+            }
+
             if (TestAndAppend(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME)) {
-                PushFront(&vk->features2, &vk->xfbFeaturesExt, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT);
-                PushFront(&vk->props2, &vk->xfbPropertiesExt, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_PROPERTIES_EXT);
+                PushFront(&vk->features2, &vk->xfbFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT);
+                PushFront(&vk->props2, &vk->xfbProperties, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_PROPERTIES_EXT);
             }
 
             if (flags & (SIMPLE_INIT_BUFFER_ROBUSTNESS_2 | SIMPLE_INIT_IMAGE_ROBUSTNESS_2 | SIMPLE_INIT_NULL_DESCRIPTOR)) {
                 if (TestAndAppend(VK_EXT_ROBUSTNESS_2_EXTENSION_NAME)) {
                     PushFront(&vk->features2, &vk->robustness2Features, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT);
+                    // no properties
                 }
             }
 
