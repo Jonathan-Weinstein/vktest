@@ -1,0 +1,23 @@
+CFLAGS := -DVK_NO_PROTOTYPES -std=c++11 -Wall -Wshadow
+COMMON_HEADERS := vk_simple_init.h vk_util.h
+
+vktest.out: unity_build.o ext_raster_multisample_test.o  main.o  uav_load_oob.o vk_simple_init.o  vk_util.o
+	g++ *.o -ldl -o vktest.out
+
+unity_build.o: unity_build.cpp
+	g++ $(CFLAGS) -c unity_build.cpp
+
+ext_raster_multisample_test.o: ext_raster_multisample_test.cpp $(COMMON_HEADERS)
+	g++ $(CFLAGS) -c ext_raster_multisample_test.cpp
+
+main.o: main.cpp $(COMMON_HEADERS)
+	g++ $(CFLAGS) -c main.cpp
+
+uav_load_oob.o: uav_load_oob.cpp $(COMMON_HEADERS)
+	g++ $(CFLAGS) -c uav_load_oob.cpp
+
+vk_simple_init.o: vk_simple_init.cpp $(COMMON_HEADERS)
+	g++ $(CFLAGS) -c vk_simple_init.cpp
+
+vk_util.o: vk_util.cpp $(COMMON_HEADERS)
+	g++ $(CFLAGS) -c vk_util.cpp
