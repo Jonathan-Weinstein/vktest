@@ -1,9 +1,9 @@
 /*
-`g++ -DVK_NO_PROTOTYPES  *.cpp -std=c++11 -Wall -Wshadow -ldl -o vktest.out`
+g++ -DVK_NO_PROTOTYPES  *.cpp -std=c++11 -Wall -Wshadow -ldl -o vktest.out
 
 Run via:
 
-`./vktest [gpu_index (default = 0)]`
+`./vktest [gpu_index]`
 */
 
 
@@ -19,50 +19,20 @@ Run via:
 #include <string.h>
 
 bool TestExtRasterMultisample(VkDevice device, VkQueue queue, uint32_t graphicsFamilyIndex, const VkPhysicalDeviceMemoryProperties& memProps);
+bool TestUavLoadOob(VkDevice device, VkQueue queue, uint32_t graphicsFamilyIndex, const VkPhysicalDeviceMemoryProperties& memProps);
 
-static VkSampleCountFlags
-GetTirSampleFlagsSupported(VkPhysicalDevice physicalDevice, VkInstance instance)
-{
-    VkSampleCountFlags sampleFlags = 0;
-        PFN_vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV fpGetCombos =
-            (PFN_vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV)
-                vkGetInstanceProcAddr(instance,
-                                      "vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV");
-    if (fpGetCombos) {
-        uint32_t nCombos = 0;
-        fpGetCombos(physicalDevice, &nCombos, nullptr);
-        VkFramebufferMixedSamplesCombinationNV *const pCombos =
-        (VkFramebufferMixedSamplesCombinationNV *)calloc(nCombos, sizeof *pCombos);
-        /* Validation layer wants this, in addition to all pNext=NULL (calloc): */
-        for (uint32_t i = 0; i < nCombos; ++i) {
-            pCombos[i].sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_MIXED_SAMPLES_COMBINATION_NV;
-        }
-        fpGetCombos(physicalDevice, &nCombos, pCombos);
-        for (uint32_t i = 0; i < nCombos; ++i) {
-            if (pCombos[i].coverageReductionMode == VK_COVERAGE_REDUCTION_MODE_MERGE_NV &&
-                pCombos[i].depthStencilSamples == 0 &&
-                pCombos[i].colorSamples == 1) {
-                sampleFlags |= pCombos[i].rasterizationSamples;
-            }
-        #if 0
-            printf("combo[%2d]{ mode=%d, raster=%2d, depthStencil=%2d, color=%2d }\n", i, pCombos[i].coverageReductionMode,
-            pCombos[i].rasterizationSamples,
-            pCombos[i].depthStencilSamples,
-            pCombos[i].colorSamples);
-        #endif
-        }
-        free(pCombos);
-    }
-    return sampleFlags;
-}
+#include "thirdparty/renderdoc_app.h"
+extern RENDERDOC_API_1_1_2 *rdoc_api;
 
+RENDERDOC_API_1_1_2 *rdoc_api = NULL;
+#include <dlfcn.h>
 
 int main(int argc, char **argv)
 {
     int const tailc = argc - 1;
     char **const tailv = argv + 1;
 
-    int gpuIndex = 0;
+    int gpuIndex = -1;
 
     if (tailc >= 0) {
         printf("tailc=%d, tailv[-1]=[%s]\n", tailc, tailv[-1]);
@@ -77,26 +47,43 @@ int main(int argc, char **argv)
         }
     }
 
-    VulkanObjetcs vk;
-    VkResult const initResult = SimpleInitVulkan(&vk, gpuIndex, ~0u);
-    if (initResult == VK_SUCCESS) {
-        if (vk.NV_coverage_reduction_mode) {
-            VkSampleCountFlags flags = GetTirSampleFlagsSupported(vk.physicalDevice, vk.instance);
-            printf("VK_NV_coverage_reduction_mode TIR SampleFlags={");
-            for (uint32_t f = 1; flags; f <<= 1) {
-                if (flags & f) {
-                    printf("%d", f);
-                    flags &= ~f;
-                    if (!flags) break;
-                    putchar(',');
-                }
+#ifdef __linux__
+    if (1) {
+        const char *renderdocLibPath = "librenderdoc.so";
+        if (void *mod = dlopen(renderdocLibPath, RTLD_NOW | RTLD_NOLOAD)) {
+            printf("Detected \"%s\" was loaded.\n", renderdocLibPath);
+            pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
+            int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);
+            if (ret != 1) {
+                printf("error: RENDERDOC_GetAPI for version=1.1.2 returned %d\n", ret);
+                rdoc_api = NULL;
             }
-            puts("}");
+        } else {
+            const char *err = dlerror();
+            fprintf(stderr, "Failed to dlopen(\"%s\", RTLD_NOW | RTLD_NOLOAD), dlerror=\"%s\"; try launching the process from renderdoc.\n",
+                    renderdocLibPath, err ? err : "<NULL>");
         }
+    }
+#endif
 
-        puts("Running test..."); fflush(stdout);
-        bool passed = TestExtRasterMultisample(vk.device, vk.universalQueue, vk.universalFamilyIndex, vk.memProps);
-        puts(passed ? "\nTest PASSED." : "\nTest FAILED."); fflush(stdout);
+    VulkanObjetcs vk;
+    VkResult const initResult = SimpleInitVulkan(&vk, ~0u, gpuIndex, GpuVendorID::Intel);
+    if (initResult == VK_SUCCESS) {
+        fflush(stderr);
+        bool passed;
+    #if 0
+        puts("Running test VK_EXT_raster_multisample..."); fflush(stdout);
+        passed = TestExtRasterMultisample(vk.device, vk.universalQueue, vk.universalFamilyIndex, vk.memProps);
+        puts(passed ? "Test PASSED." : "\nTest FAILED."); fflush(stdout);
+    #endif
+
+        if (vk.robustness2Features.robustImageAccess2) {
+            puts("Running test ld_typed_2darray_oob..."); fflush(stdout);
+            passed = TestUavLoadOob(vk.device, vk.universalQueue, vk.universalFamilyIndex, vk.memProps);
+            puts(passed ? "Test PASSED." : "\nTest FAILED."); fflush(stdout);
+        } else {
+            puts("robustImageAccess2 not supported, skipping test ld_typed_2darray_oob.");
+        }
     } else {
         printf("Failed to initialize Vulkan, VkResult = %d\n", initResult);
     }

@@ -24,7 +24,6 @@ struct VulkanObjetcs {
     // --------------------------------------------
 
     bool NV_framebuffer_mixed_samples; // VK_NV_framebuffer_mixed_samples supported
-    bool NV_coverage_reduction_mode; // VK_NV_coverage_reduction_mode supported
 
     VkPhysicalDeviceProperties2 props2;
     VkPhysicalDeviceFeatures2 features2;
@@ -53,7 +52,14 @@ enum : unsigned {
 };
 
 
-VkResult SimpleInitVulkan(VulkanObjetcs *vk, int gpuIndex, unsigned flags);
+enum class GpuVendorID : uint16_t {
+    Unknown     =      0u,
+    Intel       = 0x8086u,
+    Nvidia      = 0x10DEu
+};
+
+// forceGpuIndex = -1 (or out of bounds) means no preference. Otherwise uses VkPhysicalDevice[gpuIndex]
+VkResult SimpleInitVulkan(VulkanObjetcs *vk, unsigned flags, int forceGpuIndex = -1, GpuVendorID prefVendorID = GpuVendorID::Intel);
 
 
 void SimpleDestroyVulkan(VulkanObjetcs *vk);

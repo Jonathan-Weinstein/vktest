@@ -101,7 +101,7 @@ DebugUtilsMessengerCallbackEXT(
     return VK_FALSE; // The application should always return VK_FALSE.
 }
 
-VkResult SimpleInitVulkan(VulkanObjetcs *vk, int gpuIndex, unsigned flags)
+VkResult SimpleInitVulkan(VulkanObjetcs *vk, unsigned flags, int forceGpuIndex, GpuVendorID prefVendorID)
 {
     enum : uint32_t { MinApiVersionNeeded = VK_API_VERSION_1_1 };
 
@@ -159,9 +159,7 @@ VkResult SimpleInitVulkan(VulkanObjetcs *vk, int gpuIndex, unsigned flags)
             printf("Instance extension %s enabled.\n", instanceExtensions[i]);
         }
 
-        printf("In vkCreateInstance...");
         VkResult res = vkCreateInstance(&createInfo, nullptr, &vk->instance);
-        puts(" done.");
         if (res == VK_SUCCESS) {
             volkLoadInstanceOnly(vk->instance);
             if (bValidate) {
@@ -201,33 +199,40 @@ VkResult SimpleInitVulkan(VulkanObjetcs *vk, int gpuIndex, unsigned flags)
         }
         printf("physical device count: %d\n", physicalDeviceCount);
 
-        if (uint32_t(gpuIndex) >= physicalDeviceCount) {
-            printf("Forcing GPU 0, requested index %d >= %d\n", gpuIndex, physicalDeviceCount);
-            gpuIndex = 0;
-        } else {
-            printf("Using GPU %d\n", gpuIndex);
-        }
-
-        bool supportsMinVersion = false;
-        for (uint32_t physDevIndex = 0; physDevIndex < physicalDeviceCount; ++physDevIndex) {
+        int32_t bestScore = -1;
+        int bestIndex = -1;
+        for (int physDevIndex = 0; physDevIndex < int(physicalDeviceCount); ++physDevIndex) {
             VkPhysicalDevice const physdev = physicalDevices[physDevIndex];
             VkPhysicalDeviceProperties props;
             vkGetPhysicalDeviceProperties(physdev, &props);
-            printf("\nPhysDev[%d]: type=%s, apiVersion=0x%X, deviceName=%s, deviceID=%d, "
+            printf("VkPhysicalDevice[%d]: type=%s, apiVersion=0x%X, deviceName=%s, deviceID=%d, "
                    "vendorID=0x%X, driverVersion=0x%X\n",
                    physDevIndex, GetDeviceTypeString(props.deviceType), props.apiVersion,
                    props.deviceName, props.deviceID, props.vendorID,
                    props.driverVersion);
-            if (props.apiVersion >= MinApiVersionNeeded) {
-                supportsMinVersion = true;
+
+            int thisScore = 0;
+            if (props.apiVersion < MinApiVersionNeeded) {
+                printf("VkPhysicalDevice[%d] does not support version 1.1\n", physDevIndex);
+                if (physDevIndex == forceGpuIndex) {
+                    return VK_ERROR_FEATURE_NOT_PRESENT;
+                }
+            } else if (physDevIndex == forceGpuIndex) {
+                thisScore = 0x7fffffff;
+            } else {
+                thisScore += (props.vendorID == uint32_t(prefVendorID)) ? 128 : 0;
+            }
+
+            if (thisScore > bestScore) {
+                bestScore = thisScore;
+                bestIndex = physDevIndex;
             }
         }
-        puts("");
-        if (!supportsMinVersion) {
-            printf("VkPhysicalDevice[%d] does not support version 0x%X\n", gpuIndex, MinApiVersionNeeded);
-            return VK_ERROR_INITIALIZATION_FAILED;
+        if (bestIndex < 0) {
+            return VK_ERROR_FEATURE_NOT_PRESENT;
         }
-        VkPhysicalDevice physdev = physicalDevices[gpuIndex];
+        printf("Using VkPhysicalDevice[%d]\n", bestIndex);
+        VkPhysicalDevice const physdev = physicalDevices[bestIndex];
         vk->physicalDevice = physdev;
 
         const char *deviceExtensions[16];
@@ -248,7 +253,6 @@ VkResult SimpleInitVulkan(VulkanObjetcs *vk, int gpuIndex, unsigned flags)
             };
 
             vk->NV_framebuffer_mixed_samples = TestAndAppend(VK_NV_FRAMEBUFFER_MIXED_SAMPLES_EXTENSION_NAME);
-            vk->NV_coverage_reduction_mode = TestAndAppend(VK_NV_COVERAGE_REDUCTION_MODE_EXTENSION_NAME);
 
             if (TestAndAppend(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME)) {
                 // no features
@@ -306,19 +310,15 @@ VkResult SimpleInitVulkan(VulkanObjetcs *vk, int gpuIndex, unsigned flags)
             vkGetPhysicalDeviceQueueFamilyProperties(physdev, &numFamilies, familyProps);
             assert(numFamilies < 32u);
             assert(numFamilies);
-            printf("number of queue families: %d\n", numFamilies);
             for (uint32_t fam = 0; fam < numFamilies; ++fam) {
-                printf("family[%u].queueFlags = 0x%X\n", fam,
-                        familyProps[fam].queueFlags);
-                constexpr VkFlags universalFlags = VK_QUEUE_GRAPHICS_BIT |
-                                                   VK_QUEUE_COMPUTE_BIT |
-                                                   VK_QUEUE_TRANSFER_BIT;
+                constexpr VkQueueFlags universalFlags = VK_QUEUE_GRAPHICS_BIT |
+                                                        VK_QUEUE_COMPUTE_BIT |
+                                                        VK_QUEUE_TRANSFER_BIT;
                 if ((familyProps[fam].queueFlags & universalFlags) == universalFlags &&
                     sUniversalFamily < 0) {
                     sUniversalFamily = int(fam);
                 }
             }
-            puts("");
             if (sUniversalFamily < 0) {
                 puts("no universal queue family found");
                 return VK_ERROR_INITIALIZATION_FAILED;
