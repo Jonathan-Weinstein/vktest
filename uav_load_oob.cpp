@@ -367,6 +367,7 @@ bool TestUavLoadOob(VkDevice device, VkQueue queue, uint32_t graphicsFamilyIndex
             const uint32_t *const pBaseU32 = (const uint32_t *)(SerializedByteSizePerImage*imageIndex + (const char *)pMap);
             bool bThisImagePass = true;
             for (uint y = 0; y < ImageHeight; ++y) {
+                int numMismatchesThisRow = 0;
                 for (uint x = 0; x < ImageWidth; ++x) {
                     // mostly copied from the shader:
                     uvec2 tid = { x, y };
@@ -378,13 +379,18 @@ bool TestUavLoadOob(VkDevice device, VkQueue queue, uint32_t graphicsFamilyIndex
                     uint32_t const expectedTexelValue =
                             (c.x >= ImageWidth ||
                              c.y >= ImageHeight ||
-                             c.z >= viewLayers.n) ? 1 : ColorOfLayer[viewLayers.base + c.z];
+                             c.z >= viewLayers.n) ? 0 : ColorOfLayer[viewLayers.base + c.z];
                     uint32_t const gotTexelValue = pBaseU32[y * ImageWidth + x];
                     if (expectedTexelValue != gotTexelValue) {
                         bThisImagePass = false;
-                        printf("Mismatch at x=%d, y=%d, viewType=%sv, inputImageIndex=%d: got=0x%08X, expected=0x%08X\n",
-                               x, y, bUav ? "ua" : "sr", imageIndex, gotTexelValue, expectedTexelValue);
+                        if (numMismatchesThisRow++ == 0) {
+                            printf("Mismatch at x=%d, y=%d, %sV_%d, c={%d,%d,%d}: got=0x%08X, expected=0x%08X\n",
+                                    x, y, bUav ? "UA" : "SR", imageIndex, c.x, c.y, c.z, gotTexelValue, expectedTexelValue);
+                        }
                     }
+                }
+                if (numMismatchesThisRow >= 2) {
+                    printf("%d more mismatches this row not reported\n", numMismatchesThisRow - 1);
                 }
             }
             if (!bThisImagePass) {
@@ -393,7 +399,7 @@ bool TestUavLoadOob(VkDevice device, VkQueue queue, uint32_t graphicsFamilyIndex
                 sprintf(nameBuf, "ld_%sv_typed_generated_%02d.png", bUav ? "ua" : "sr", imageIndex);
                 printf("Saving failed result as %s\n", nameBuf);
                 stbi_write_png(nameBuf, ImageWidth, ImageHeight, 4, pBaseU32, ImageWidth * sizeof(uint32_t));
-                printf("Expected result is ld_typed_ref_%02d.png\n", imageIndex); // same for SRV and UAV
+                printf("Expected result is ld_typed_ref_%02d.png\n\n", imageIndex); // same for SRV and UAV
             }
         }
 
