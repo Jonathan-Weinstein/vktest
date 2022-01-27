@@ -37,4 +37,7 @@ CMakeLists.txt.user
 # Misc
 generated_2x.png
 ld_*_typed_generated_*
+shaders
 
+# vscode
+*.code-workspace

@@ -253,6 +253,8 @@ VkResult SimpleInitVulkan(VulkanObjetcs *vk, unsigned flags, int forceGpuIndex, 
             };
 
             vk->NV_framebuffer_mixed_samples = TestAndAppend(VK_NV_FRAMEBUFFER_MIXED_SAMPLES_EXTENSION_NAME);
+            vk->KHR_shader_draw_parameters = TestAndAppend(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
+            vk->KHR_shader_float_controls = TestAndAppend(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
 
             if (TestAndAppend(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME)) {
                 // no features

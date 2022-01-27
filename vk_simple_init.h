@@ -23,7 +23,9 @@ struct VulkanObjetcs {
 
     // --------------------------------------------
 
-    bool NV_framebuffer_mixed_samples; // VK_NV_framebuffer_mixed_samples supported
+    bool NV_framebuffer_mixed_samples;
+    bool KHR_shader_draw_parameters;
+    bool KHR_shader_float_controls;
 
     VkPhysicalDeviceProperties2 props2;
     VkPhysicalDeviceFeatures2 features2;

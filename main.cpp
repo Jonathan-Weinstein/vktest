@@ -21,6 +21,10 @@ Run via:
 bool TestExtRasterMultisample(VkDevice device, VkQueue queue, uint32_t graphicsFamilyIndex, const VkPhysicalDeviceMemoryProperties& memProps);
 bool TestUavLoadOob(VkDevice device, VkQueue queue, uint32_t graphicsFamilyIndex, const VkPhysicalDeviceMemoryProperties& memProps);
 
+bool TestClipDistanceIo(VkDevice device, VkQueue queue, uint32_t graphicsFamilyIndex, const VkPhysicalDeviceMemoryProperties& memProps);
+
+bool TestXfbPingPong(const VulkanObjetcs& vk);
+
 #include "thirdparty/renderdoc_app.h"
 extern RENDERDOC_API_1_1_2 *rdoc_api;
 
@@ -71,18 +75,27 @@ int main(int argc, char **argv)
     if (initResult == VK_SUCCESS) {
         fflush(stderr);
         bool passed;
-    #if 0
-        puts("Running test VK_EXT_raster_multisample..."); fflush(stdout);
-        passed = TestExtRasterMultisample(vk.device, vk.universalQueue, vk.universalFamilyIndex, vk.memProps);
-        puts(passed ? "Test PASSED." : "\nTest FAILED."); fflush(stdout);
-    #endif
-
-        if (vk.robustness2Features.robustImageAccess2) {
-            puts("Running test ld_typed_2darray_oob..."); fflush(stdout);
-            passed = TestUavLoadOob(vk.device, vk.universalQueue, vk.universalFamilyIndex, vk.memProps);
+        if (0) {
+            puts("Running test VK_EXT_raster_multisample..."); fflush(stdout);
+            passed = TestExtRasterMultisample(vk.device, vk.universalQueue, vk.universalFamilyIndex, vk.memProps);
             puts(passed ? "Test PASSED." : "\nTest FAILED."); fflush(stdout);
-        } else {
-            puts("robustImageAccess2 not supported, skipping test ld_typed_2darray_oob.");
+        }
+
+        if (0) { // XXX
+            if (rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
+            //TestClipDistanceIo(vk.device, vk.universalQueue, vk.universalFamilyIndex, vk.memProps);
+            TestXfbPingPong(vk);
+            if (rdoc_api) rdoc_api->EndFrameCapture(NULL, NULL);
+        }
+
+        if (1) { // run this by default for now, might want to update that page
+            if (vk.robustness2Features.robustImageAccess2) {
+                puts("Running test ld_typed_2darray_oob..."); fflush(stdout);
+                passed = TestUavLoadOob(vk.device, vk.universalQueue, vk.universalFamilyIndex, vk.memProps);
+                puts(passed ? "Test PASSED." : "\nTest FAILED."); fflush(stdout);
+            } else {
+                puts("robustImageAccess2 not supported, skipping test ld_typed_2darray_oob.");
+            }
         }
     } else {
         printf("Failed to initialize Vulkan, VkResult = %d\n", initResult);

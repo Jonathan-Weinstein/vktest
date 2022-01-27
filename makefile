@@ -1,7 +1,7 @@
 CFLAGS := -DVK_NO_PROTOTYPES -std=c++11 -Wall -Wshadow
 COMMON_HEADERS := vk_simple_init.h vk_util.h
 
-vktest.out: unity_build.o ext_raster_multisample_test.o  main.o  uav_load_oob.o vk_simple_init.o  vk_util.o
+vktest.out: unity_build.o ext_raster_multisample_test.o  main.o  uav_load_oob.o vk_simple_init.o  vk_util.o clipdistance_tessellation.o xfb_pingpong_bug.o
 	g++ *.o -ldl -o vktest.out
 
 unity_build.o: unity_build.cpp
@@ -9,6 +9,12 @@ unity_build.o: unity_build.cpp
 
 ext_raster_multisample_test.o: ext_raster_multisample_test.cpp $(COMMON_HEADERS)
 	g++ $(CFLAGS) -c ext_raster_multisample_test.cpp
+
+clipdistance_tessellation.o: clipdistance_tessellation.cpp $(COMMON_HEADERS)
+	g++ $(CFLAGS) -c clipdistance_tessellation.cpp
+
+xfb_pingpong_bug.o: xfb_pingpong_bug.cpp $(COMMON_HEADERS)
+	g++ $(CFLAGS) -c xfb_pingpong_bug.cpp
 
 main.o: main.cpp $(COMMON_HEADERS)
 	g++ $(CFLAGS) -c main.cpp

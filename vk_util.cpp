@@ -5,6 +5,7 @@
 #include "vk_util.h"
 #include "volk/volk.h"
 
+//XXX: the value of HOST_CACHED may not match:
 static int
 FindMemoryType(const VkPhysicalDeviceMemoryProperties& memProps,
                uint32_t requiredTypeBits,
