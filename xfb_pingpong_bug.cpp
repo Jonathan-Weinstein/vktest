@@ -696,7 +696,7 @@ bool TestXfbPingPong(const VulkanObjetcs& vk)
         submitInfo.pCommandBuffers = &cmdbuf;
         VERIFY_VK(vkQueueSubmit(vk.universalQueue, 1, &submitInfo, VK_NULL_HANDLE));
         VERIFY_VK(vkQueueWaitIdle(vk.universalQueue));
-        const VkDeviceSize offset = 0, size = StageByteCapacity;
+        const VkDeviceSize offset = 0, size = VK_WHOLE_SIZE;
         VERIFY_VK(vkMapMemory(device, stage.memory, offset, size, 0, &pMap));
         const VkMappedMemoryRange range = { VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, nullptr, stage.memory, offset, size };
         vkInvalidateMappedMemoryRanges(device, 1, &range);
