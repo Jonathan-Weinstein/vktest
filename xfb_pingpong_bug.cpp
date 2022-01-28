@@ -507,12 +507,15 @@ bool TestXfbPingPong(const VulkanObjetcs& vk)
     {
         uint32_t tmp[lengthof(VsXfbSpirv)];
         memcpy(tmp, VsXfbSpirv, sizeof tmp);
-        if (1) { // this doesn't seem to fix the issue:
+        if (0) { // this doesn't seem to fix the issue:
             /* Can do this because rasterizerDiscard is enabled: */
-            puts("Replacing 'OpDecorate %output BuiltIn Position' with 'OpDecorate %output Location 0'");
+            puts("Replacing 'OpDecorate %output BuiltIn Position' with 'OpDecorate %output Location 0'.");
             tmp[0x00000068 / 4 + 2] = 30; // SpvDecorationLocation
             tmp[0x00000068 / 4 + 3] = 0;
-        } // else leave as: OpDecorate %gl_Position BuiltIn Position ; 0x00000068
+        } else {
+            // leave as: OpDecorate %gl_Position BuiltIn Position ; 0x00000068
+            puts("Using variant with Postion as XFB output.");
+        }
         vs_xfb = CreateShaderModule(device, tmp);
     }
     VkShaderModule vs_plain = CreateShaderModule(device, VsPlainSpirv);
