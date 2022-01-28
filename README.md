@@ -2,8 +2,8 @@
 
 ```
 git clone --recurse-submodules https://github.com/Jonathan-Weinstein/vktest.git
-git pull --recurse-submodules
 cd vktest
+git pull --recurse-submodules
 make
 ```
 
