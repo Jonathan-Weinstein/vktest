@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern bool g_bSaveFailingImages;
+
 struct uvec2 { uint32_t x, y; };
 struct uvec3 { uint32_t x, y, z; };
 
@@ -395,11 +397,16 @@ bool TestUavLoadOob(VkDevice device, VkQueue queue, uint32_t graphicsFamilyIndex
             }
             if (!bThisImagePass) {
                 bPassed = false;
-                char nameBuf[256];
-                sprintf(nameBuf, "ld_%sv_typed_generated_%02d.png", bUav ? "ua" : "sr", imageIndex);
-                printf("Saving failed result as %s\n", nameBuf);
-                stbi_write_png(nameBuf, ImageWidth, ImageHeight, 4, pBaseU32, ImageWidth * sizeof(uint32_t));
-                printf("Expected result is ld_typed_ref_%02d.png\n\n", imageIndex); // same for SRV and UAV
+                if (g_bSaveFailingImages) {
+                    char nameBuf[256];
+                    sprintf(nameBuf, "ld_%sv_typed_generated_%02d.png", bUav ? "ua" : "sr", imageIndex);
+                    printf("Saving failed result as %s\n", nameBuf);
+                    stbi_write_png(nameBuf, ImageWidth, ImageHeight, 4, pBaseU32, ImageWidth * sizeof(uint32_t));
+                    printf("Expected result is ld_typed_ref_%02d.png\n\n", imageIndex); // same for SRV and UAV
+                } else {
+                    printf("case ld_%sv_typed_generated_%02d failed, not writing.png (use --save-failing-images if desired).\n",
+                            bUav ? "ua" : "sr", imageIndex);
+                }
             }
         }
 

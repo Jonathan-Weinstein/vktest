@@ -38,6 +38,7 @@ CMakeLists.txt.user
 generated_2x.png
 ld_*_typed_generated_*
 shaders
+xfb_output.png
 
 # vscode
 *.code-workspace

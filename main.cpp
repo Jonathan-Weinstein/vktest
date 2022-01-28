@@ -31,6 +31,9 @@ extern RENDERDOC_API_1_1_2 *rdoc_api;
 RENDERDOC_API_1_1_2 *rdoc_api = NULL;
 #include <dlfcn.h>
 
+extern bool g_bSaveFailingImages;
+bool g_bSaveFailingImages = false;
+
 int main(int argc, char **argv)
 {
     int const tailc = argc - 1;
@@ -38,17 +41,29 @@ int main(int argc, char **argv)
 
     int gpuIndex = -1;
 
+    const char *singleTestName = nullptr;
+
     if (tailc >= 0) {
-        printf("tailc=%d, tailv[-1]=[%s]\n", tailc, tailv[-1]);
-
-        if (tailc >= 2) {
-            printf("got %d args, only 0 or 1 valid\n", tailc);
-            return 1;
+        for (int i = 0; i < tailc; ++i) {
+            int ival;
+            const char *const a = tailv[i];
+            if (memcmp(a, "--test=", 7) == 0) {
+                singleTestName = a + 7;
+            } else if (strcmp(a, "--save-failing-images") == 0) {
+                g_bSaveFailingImages = true;
+            } else if (sscanf(a, "--gpuindex=%d\n", &ival) == 1) {
+                printf("Preferring --gpuindex=%d\n", ival);
+                gpuIndex = ival;
+            } else {
+                printf("ERROR: bad/unknown argument argv[%d]=%s\n", i + 1, a);
+                return 1;
+            }
         }
+    }
 
-        if (tailc == 1) {
-            gpuIndex = atoi(tailv[0]);
-        }
+    if (!singleTestName) {
+        singleTestName = "ld_typed_2darray_oob";
+        printf("--test=%%s argument not given, defaulting to %s\n", singleTestName);
     }
 
 #ifdef __linux__
@@ -81,21 +96,23 @@ int main(int argc, char **argv)
             puts(passed ? "Test PASSED." : "\nTest FAILED."); fflush(stdout);
         }
 
-        if (0) { // XXX
+        // XXX: clean this up later and make it clearer what names are allowed and check that before.
+        // list of {const char *name, pfn test func, ...}
+        if (strcmp(singleTestName, "xfb_vb_pingpong") == 0) {
             if (rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
-            //TestClipDistanceIo(vk.device, vk.universalQueue, vk.universalFamilyIndex, vk.memProps);
-            TestXfbPingPong(vk);
+            puts("Running test xfb_vb_pingpong..."); fflush(stdout);
+            passed = TestXfbPingPong(vk);
             if (rdoc_api) rdoc_api->EndFrameCapture(NULL, NULL);
-        }
-
-        if (1) { // run this by default for now, might want to update that page
-            if (vk.robustness2Features.robustImageAccess2) {
-                puts("Running test ld_typed_2darray_oob..."); fflush(stdout);
-                passed = TestUavLoadOob(vk.device, vk.universalQueue, vk.universalFamilyIndex, vk.memProps);
-                puts(passed ? "Test PASSED." : "\nTest FAILED."); fflush(stdout);
-            } else {
-                puts("robustImageAccess2 not supported, skipping test ld_typed_2darray_oob.");
+            puts(passed ? "Test PASSED." : "\nTest FAILED."); fflush(stdout);
+        } else if (strcmp(singleTestName, "ld_typed_2darray_oob") == 0) {
+            puts("Running test ld_typed_2darray_oob..."); fflush(stdout);
+            if (!vk.robustness2Features.robustImageAccess2) {
+                puts("NOTE: robustImageAccess2 not supported, failing the test may be okay.");
             }
+            passed = TestUavLoadOob(vk.device, vk.universalQueue, vk.universalFamilyIndex, vk.memProps);
+            puts(passed ? "Test PASSED." : "\nTest FAILED."); fflush(stdout);
+        } else {
+            printf("ERROR: unknown test name %s\n", singleTestName);
         }
     } else {
         printf("Failed to initialize Vulkan, VkResult = %d\n", initResult);
