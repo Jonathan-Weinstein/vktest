@@ -12,4 +12,4 @@ Alternative to make without caching anything:
 
 Run in the repo directory via:
 
-`./vktest.out [gpu_index]`
+`./vktest.out [--gpuindex=%d] [--test=%s] [--save-failing-images]`
