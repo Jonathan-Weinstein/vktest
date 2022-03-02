@@ -236,7 +236,7 @@ VkResult SimpleInitVulkan(VulkanObjetcs *vk, unsigned flags, int forceGpuIndex, 
         vk->physicalDevice = physdev;
 
         const char *deviceExtensions[16];
-        int nDeviceExtensions;
+        int nDeviceExtensions = 0;
         {
             vk->props2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
             vk->features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
