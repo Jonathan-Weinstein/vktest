@@ -44,7 +44,6 @@ int main(int argc, char **argv)
     int gpuIndex = -1;
 
     const char *singleTestName = "";
-    bool bRenderdoc = false;
     unsigned vkInitFlags =
         SIMPLE_INIT_BUFFER_ROBUSTNESS_1 |
         SIMPLE_INIT_BUFFER_ROBUSTNESS_2 |
@@ -62,8 +61,6 @@ int main(int argc, char **argv)
             } else if (sscanf(a, "--gpuindex=%d\n", &ival) == 1) {
                 printf("Preferring --gpuindex=%d\n", ival);
                 gpuIndex = ival;
-            } else if (strcmp(a, "--renderdoc") == 0) {
-                bRenderdoc = true;
             } else if (strcmp(a, "--coreval") == 0) {
                 vkInitFlags |= SIMPLE_INIT_VALIDATION_CORE;
             } else if (strcmp(a, "--syncval") == 0) {
@@ -76,8 +73,7 @@ int main(int argc, char **argv)
     }
 
 #ifdef __linux__
-    if (bRenderdoc) {
-        vkInitFlags |= SIMPLE_INIT_DEBUG;
+    if (1) {
         const char *renderdocLibPath = "librenderdoc.so";
         if (void *mod = dlopen(renderdocLibPath, RTLD_NOW | RTLD_NOLOAD)) {
             printf("Detected \"%s\" was loaded.\n", renderdocLibPath);
@@ -86,17 +82,19 @@ int main(int argc, char **argv)
             if (ret != 1) {
                 printf("error: RENDERDOC_GetAPI for version=1.1.2 returned %d\n", ret);
                 rdoc_api = NULL;
+            } else {
+                vkInitFlags |= SIMPLE_INIT_DEBUG;
             }
         } else {
             const char *err = dlerror();
-            fprintf(stderr, "Failed to dlopen(\"%s\", RTLD_NOW | RTLD_NOLOAD), dlerror=\"%s\"; try launching the process from renderdoc.\n",
+            fprintf(stderr, "Failed to dlopen(\"%s\", RTLD_NOW | RTLD_NOLOAD), dlerror=\"%s\".\n",
                     renderdocLibPath, err ? err : "<NULL>");
         }
     }
 #endif
 
     VulkanObjetcs vk;
-    VkResult const initResult = SimpleInitVulkan(&vk, ~0u, gpuIndex, GpuVendorID::Intel);
+    VkResult const initResult = SimpleInitVulkan(&vk, vkInitFlags, gpuIndex, GpuVendorID::Intel);
     if (initResult == VK_SUCCESS) {
         fflush(stderr);
         fflush(stdout);

@@ -1,7 +1,9 @@
+# This probably sucks. I don't normally use make.
+
 CFLAGS := -DVK_NO_PROTOTYPES -std=c++11 -Wall -Wshadow
 COMMON_HEADERS := vk_simple_init.h vk_util.h
 
-vktest.out: unity_build.o ext_raster_multisample_test.o  main.o  uav_load_oob.o vk_simple_init.o  vk_util.o clipdistance_tessellation.o xfb_pingpong_bug.o
+vktest.out: unity_build.o ext_raster_multisample_test.o  main.o  uav_load_oob.o vk_simple_init.o  vk_util.o clipdistance_tessellation.o xfb_pingpong_bug.o yuy2_r32_copy.o
 	g++ *.o -ldl -o vktest.out
 
 unity_build.o: unity_build.cpp
@@ -21,6 +23,9 @@ main.o: main.cpp $(COMMON_HEADERS)
 
 uav_load_oob.o: uav_load_oob.cpp $(COMMON_HEADERS)
 	g++ $(CFLAGS) -c uav_load_oob.cpp
+
+yuy2_r32_copy.o: yuy2_r32_copy.cpp $(COMMON_HEADERS)
+	g++ $(CFLAGS) -c yuy2_r32_copy.cpp
 
 vk_simple_init.o: vk_simple_init.cpp $(COMMON_HEADERS)
 	g++ $(CFLAGS) -c vk_simple_init.cpp
