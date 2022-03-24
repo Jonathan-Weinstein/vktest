@@ -51,6 +51,7 @@ enum : unsigned {
     SIMPLE_INIT_NULL_DESCRIPTOR     = 1 << 3,
     SIMPLE_INIT_VALIDATION_CORE     = 1 << 4,
     SIMPLE_INIT_VALIDATION_SYNC     = 1 << 5,
+    SIMPLE_INIT_DEBUG               = 1 << 6
 };
 
 

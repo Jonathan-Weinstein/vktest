@@ -34,6 +34,8 @@ RENDERDOC_API_1_1_2 *rdoc_api = NULL;
 extern bool g_bSaveFailingImages;
 bool g_bSaveFailingImages = false;
 
+void TestYuy2Copy(const VulkanObjetcs& vk);
+
 int main(int argc, char **argv)
 {
     int const tailc = argc - 1;
@@ -41,12 +43,18 @@ int main(int argc, char **argv)
 
     int gpuIndex = -1;
 
-    const char *singleTestName = nullptr;
+    const char *singleTestName = "";
+    bool bRenderdoc = false;
+    unsigned vkInitFlags =
+        SIMPLE_INIT_BUFFER_ROBUSTNESS_1 |
+        SIMPLE_INIT_BUFFER_ROBUSTNESS_2 |
+        SIMPLE_INIT_IMAGE_ROBUSTNESS_2  |
+        SIMPLE_INIT_NULL_DESCRIPTOR;
 
     if (tailc >= 0) {
         for (int i = 0; i < tailc; ++i) {
             int ival;
-            const char *const a = tailv[i];
+            const char *a = tailv[i];
             if (memcmp(a, "--test=", 7) == 0) {
                 singleTestName = a + 7;
             } else if (strcmp(a, "--save-failing-images") == 0) {
@@ -54,6 +62,12 @@ int main(int argc, char **argv)
             } else if (sscanf(a, "--gpuindex=%d\n", &ival) == 1) {
                 printf("Preferring --gpuindex=%d\n", ival);
                 gpuIndex = ival;
+            } else if (strcmp(a, "--renderdoc") == 0) {
+                bRenderdoc = true;
+            } else if (strcmp(a, "--coreval") == 0) {
+                vkInitFlags |= SIMPLE_INIT_VALIDATION_CORE;
+            } else if (strcmp(a, "--syncval") == 0) {
+                vkInitFlags |= SIMPLE_INIT_VALIDATION_SYNC;
             } else {
                 printf("ERROR: bad/unknown argument argv[%d]=%s\n", i + 1, a);
                 return 1;
@@ -61,13 +75,9 @@ int main(int argc, char **argv)
         }
     }
 
-    if (!singleTestName) {
-        singleTestName = "ld_typed_2darray_oob";
-        printf("--test=%%s argument not given, defaulting to %s\n", singleTestName);
-    }
-
 #ifdef __linux__
-    if (1) {
+    if (bRenderdoc) {
+        vkInitFlags |= SIMPLE_INIT_DEBUG;
         const char *renderdocLibPath = "librenderdoc.so";
         if (void *mod = dlopen(renderdocLibPath, RTLD_NOW | RTLD_NOLOAD)) {
             printf("Detected \"%s\" was loaded.\n", renderdocLibPath);
@@ -89,15 +99,8 @@ int main(int argc, char **argv)
     VkResult const initResult = SimpleInitVulkan(&vk, ~0u, gpuIndex, GpuVendorID::Intel);
     if (initResult == VK_SUCCESS) {
         fflush(stderr);
-        bool passed;
-        if (0) {
-            puts("Running test VK_EXT_raster_multisample..."); fflush(stdout);
-            passed = TestExtRasterMultisample(vk.device, vk.universalQueue, vk.universalFamilyIndex, vk.memProps);
-            puts(passed ? "Test PASSED." : "\nTest FAILED."); fflush(stdout);
-        }
-
-        // XXX: clean this up later and make it clearer what names are allowed and check that before.
-        // list of {const char *name, pfn test func, ...}
+        fflush(stdout);
+        bool passed = false;
         if (strcmp(singleTestName, "xfb_vb_pingpong") == 0) {
             if (rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
             puts("Running test xfb_vb_pingpong..."); fflush(stdout);
@@ -112,7 +115,7 @@ int main(int argc, char **argv)
             passed = TestUavLoadOob(vk.device, vk.universalQueue, vk.universalFamilyIndex, vk.memProps);
             puts(passed ? "Test PASSED." : "\nTest FAILED."); fflush(stdout);
         } else {
-            printf("ERROR: unknown test name %s\n", singleTestName);
+            TestYuy2Copy(vk);
         }
     } else {
         printf("Failed to initialize Vulkan, VkResult = %d\n", initResult);

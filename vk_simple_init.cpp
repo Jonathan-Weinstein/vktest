@@ -129,11 +129,10 @@ VkResult SimpleInitVulkan(VulkanObjetcs *vk, unsigned flags, int forceGpuIndex, 
         uint nLayers = 0;
 
         bool const bValidate = (flags & (SIMPLE_INIT_VALIDATION_CORE | SIMPLE_INIT_VALIDATION_SYNC)) != 0;
+        bool const bDebug = bValidate || (flags & SIMPLE_INIT_DEBUG);
 
         if (bValidate) {
             layers[nLayers++] = "VK_LAYER_KHRONOS_validation";
-
-            instanceExtensions[nInstanceExtensions++] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 
             if (flags & SIMPLE_INIT_VALIDATION_SYNC) {
                 instanceExtensions[nInstanceExtensions++] = VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME;
@@ -143,6 +142,10 @@ VkResult SimpleInitVulkan(VulkanObjetcs *vk, unsigned flags, int forceGpuIndex, 
                 validationFeaturesInfo.pEnabledValidationFeatures = extraValidationEnables;
                 createInfo.pNext = &validationFeaturesInfo;
             }
+        }
+
+        if (bDebug) {
+            instanceExtensions[nInstanceExtensions++] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
         }
 
         createInfo.ppEnabledLayerNames = nLayers ? layers : nullptr;
@@ -162,7 +165,7 @@ VkResult SimpleInitVulkan(VulkanObjetcs *vk, unsigned flags, int forceGpuIndex, 
         VkResult res = vkCreateInstance(&createInfo, nullptr, &vk->instance);
         if (res == VK_SUCCESS) {
             volkLoadInstanceOnly(vk->instance);
-            if (bValidate) {
+            if (bDebug) {
                 VkDebugUtilsMessengerCreateInfoEXT debugInfo = {
                     VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
                     nullptr,
@@ -236,7 +239,7 @@ VkResult SimpleInitVulkan(VulkanObjetcs *vk, unsigned flags, int forceGpuIndex, 
         vk->physicalDevice = physdev;
 
         const char *deviceExtensions[16];
-        int nDeviceExtensions;
+        int nDeviceExtensions = 0;
         {
             vk->props2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
             vk->features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;

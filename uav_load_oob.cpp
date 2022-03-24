@@ -234,7 +234,7 @@ bool TestUavLoadOob(VkDevice device, VkQueue queue, uint32_t graphicsFamilyIndex
 
     bool bPassed = true;
 
-    bool const bUseDebugtUtil = true;
+    bool const bUseDebugtUtil = (vkCmdBeginDebugUtilsLabelEXT != nullptr);
     if (rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
     for (int n = 2; n; --n) {
         bool const bUav = (n == 1);
