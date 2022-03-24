@@ -764,6 +764,29 @@ bool TestXfbPingPong(const VulkanObjetcs& vk)
 }
 
 /*
+Passes:
+$ vulkaninfo | grep -A 5 VkPhysicalDeviceDriverProperties
+
+VkPhysicalDeviceDriverProperties:
+---------------------------------
+	driverID           = DRIVER_ID_INTEL_OPEN_SOURCE_MESA
+	driverName         = Intel open-source Mesa driver
+	driverInfo         = Mesa 21.0.3
+	conformanceVersion = 1.2.0.0
+
+Fails:
+$ LD_LIBRARY_PATH=$MESA_DIR/lib/x86_64-linux-gnu VK_ICD_FILENAMES=$MESA_DIR/share/vulkan/icd.d/intel_icd.x86_64.json vulkaninfo | grep -A 5 VkPhysicalDeviceDriverProperties
+
+VkPhysicalDeviceDriverProperties:
+---------------------------------
+	driverID           = DRIVER_ID_INTEL_OPEN_SOURCE_MESA
+	driverName         = Intel open-source Mesa driver
+	driverInfo         = Mesa 22.0.0-devel (git-1cb5c1775b)
+	conformanceVersion = 1.2.0.0
+*/
+
+
+/*
 Self note(JW): the same VS was used in the rasterize pass of
 streamout_recursive_xformt. That's where the extra rotation came from
 and loop count was 1 less.
