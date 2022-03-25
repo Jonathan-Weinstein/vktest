@@ -29,7 +29,10 @@ bool TestXfbPingPong(const VulkanObjetcs& vk);
 extern RENDERDOC_API_1_1_2 *rdoc_api;
 
 RENDERDOC_API_1_1_2 *rdoc_api = NULL;
+
+#ifdef __linux__
 #include <dlfcn.h>
+#endif
 
 extern bool g_bSaveFailingImages;
 bool g_bSaveFailingImages = false;

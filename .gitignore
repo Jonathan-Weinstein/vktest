@@ -42,3 +42,22 @@ xfb_output.png
 
 # vscode
 *.code-workspace
+
+### Visual studio
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# User-specific files (MonoDevelop/Xamarin Studio)
+*.userprefs
+
+# Mono auto generated files
+mono_crash.*
+
+.vs
+x64
+x86

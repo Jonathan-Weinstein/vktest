@@ -4,6 +4,8 @@
 
 #define VKU_ALLOC_CBS static_cast<const VkAllocationCallbacks *>(nullptr)
 
+typedef unsigned uint;
+
 /*
  * Both Direct3D and Vulkan use the same equation for clipspace X to
  * framebuffer X, but Direct3D use negates ndc.y for the Y coord.

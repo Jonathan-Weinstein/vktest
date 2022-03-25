@@ -449,14 +449,14 @@ bool TestClipDistanceIo(VkDevice device, VkQueue queue, uint32_t graphicsFamilyI
         for (int i = 0; i < 2; ++i) {
             const D3D11_QUERY_DATA_PIPELINE_STATISTICS& r = queryData[i];
             printf("Relevant QueryResult[%d] = {\n", i);
-            printf("   IAVertices    = %lu\n", r.IAVertices);
-            printf("   IAPrimitives  = %lu\n", r.IAPrimitives);
-            printf("   VSInvocations = %lu\n", r.VSInvocations);
-            printf("   CInvocations  = %lu\n", r.CInvocations);
-            printf("   CPrimitives   = %lu\n", r.CPrimitives);
-            printf("   PSInvocations = %lu\n", r.PSInvocations);
-            printf("   HSInvocations = %lu\n", r.HSInvocations);
-            printf("   DSInvocations = %lu\n", r.DSInvocations);
+            printf("   IAVertices    = %llu\n", r.IAVertices);
+            printf("   IAPrimitives  = %llu\n", r.IAPrimitives);
+            printf("   VSInvocations = %llu\n", r.VSInvocations);
+            printf("   CInvocations  = %llu\n", r.CInvocations);
+            printf("   CPrimitives   = %llu\n", r.CPrimitives);
+            printf("   PSInvocations = %llu\n", r.PSInvocations);
+            printf("   HSInvocations = %llu\n", r.HSInvocations);
+            printf("   DSInvocations = %llu\n", r.DSInvocations);
             puts("}");
         }
     }
